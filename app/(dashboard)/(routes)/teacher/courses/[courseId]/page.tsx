@@ -1,10 +1,14 @@
 import { db }  from "@/lib/db"
 import { auth } from "@clerk/nextjs"
-import { Badge, LayoutDashboard } from "lucide-react";
+import { Badge, CircleDollarSign, File, LayoutDashboard, ListChecksIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 import { TitleForm } from "./_components/title-form";
 import { DescriptionForm } from "./_components/decription-form";
 import { ImageForm } from "./_components/image-form";
+import { CategoryForm } from "./_components/category-form";
+import { PriceForm } from "./_components/price-form";
+import { AttachmentForm } from "./_components/attachment-form";
+import { ChapterForm } from "./_components/chapter-form";
 
 const CourseIdPage = async ({
     params
@@ -12,16 +16,38 @@ const CourseIdPage = async ({
     params: {courseId: string}
 }) => {
 
-    const userId = auth();
+const {userId} = auth();
     if(!userId){
         return redirect("/")
     }
 
     const course = await db.course.findUnique({
         where:{
-            id: params.courseId
+            id: params.courseId,
+            userId
+        },
+        include:{
+
+            chapters:{
+                orderBy:{
+                    position: "asc"
+                }
+            },
+            attachments:{
+                orderBy:{
+                    createdAt:"desc"
+                }
+            }
         }
     });
+
+    const categories = await db.category.findMany({
+        orderBy:{
+            name:"asc",
+        }
+    })
+
+    
 
     if(!course){
         return redirect("/")
@@ -33,7 +59,9 @@ const CourseIdPage = async ({
         course.description,
         course.imageUrl,
         course.price,
-        course.categoryId
+        course.categoryId,
+        course.chapters.some(chapter => chapter.isPublished),
+
     ];
 
     const totalFields = requidFields.length;
@@ -76,6 +104,55 @@ const CourseIdPage = async ({
                         initialData={course}
                         courseId={course.id}
                     />
+                    <CategoryForm
+                        initialData={course}
+                        courseId={course.id}
+                        options={categories.map((category) => ({
+                            label: category.name,
+                            value: category.id
+                        }))}
+                    />
+                </div>
+                <div className="space-y-6">
+                    <div>
+                        <div className="flex items-center gap-x-2">
+                            <ListChecksIcon className="text-sky-700" />
+                            <h2 className="text-xl">
+                                Course chapters
+                            </h2>
+                        </div>
+                        <div>
+                            <ChapterForm 
+                                 initialData={course}
+                                 courseId={course.id}
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-x-2">
+                            <CircleDollarSign className="text-sky-700"/>
+                            <h2 className="text-xl">
+                                Sell your course
+                            </h2>
+                        </div>
+                        <PriceForm
+                            initialData={course}
+                            courseId={course.id}
+                        />
+                    </div>
+
+                    <div>
+                        <div className="flex items-center gap-x-2">
+                            <File className="text-sky-700"/>
+                            <h2 className="text-xl">
+                                Resource & Attachments
+                            </h2>
+                        </div>
+                        <AttachmentForm
+                        initialData={course}
+                        courseId={course.id}
+                            />
+                    </div>
                 </div>
 
             </div>
