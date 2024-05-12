@@ -93,7 +93,8 @@ export const getChapter = async ({
             muxData,
             nextChapterId,
             userProgress,
-            purchase
+            purchase,
+            attachments
         }
 
 
